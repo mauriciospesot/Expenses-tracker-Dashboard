@@ -47,18 +47,18 @@ export default function AllExpenses({ label }) {
     },
   });
 
-  let columns = [
-    "Expense name",
-    "Month",
-    "Year",
-    "Owner",
-    "Category",
-    "Description",
-    "Credit Card",
-    "Quota",
-    "Price",
-    "Action",
-  ];
+  // The column keys must be identical to the database columns.
+  let columns = {
+    name: "Expense name",
+    month: "Month",
+    year: "Year",
+    owner: "Owner",
+    category: "Category",
+    description: "Description",
+    credit_card: "Credit Card",
+    quota: "Quota",
+    price: "Price",
+  };
 
   const name = useRef();
   const month = useRef();
@@ -404,6 +404,7 @@ export default function AllExpenses({ label }) {
               hasSelectRow={true}
               onDelete={handleDeleteItems}
               hasTotal={true}
+              hasActions={true}
             />
           </div>
         </div>

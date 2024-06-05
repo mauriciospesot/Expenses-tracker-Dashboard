@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { createRef, useRef, useState } from "react";
 
 const formatter = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -12,8 +12,12 @@ export default function Table({
   onDelete,
   hasTotal,
   hasSelectRow,
+  hasActions,
 }) {
   const [itemsToDelete, setItemsToDelete] = useState([]);
+  const [refValues, setRefValues] = useState([]);
+
+  const refs = useRef(Object.keys(columns).map(() => createRef()));
 
   // temporal loading variable
   let loading = false;
@@ -31,6 +35,51 @@ export default function Table({
     }
 
     onDelete(updatedSelectedIds);
+  };
+
+  const [editRowId, setEditRowId] = useState(null);
+  const [editData, setEditData] = useState({});
+
+  const handleEditClick = (id) => {
+    setEditRowId(id);
+    const rowData = data.find((row) => row.id === id);
+    console.log(rowData);
+    setEditData(rowData);
+  };
+
+  const handleSaveClick = (id) => {
+    const newRefValues = refs.current.map((ref) => ref.current.value);
+    const keyColumns = Object.keys(columns);
+    newRefValues.map((value, index) => {
+      if (value !== editData[keyColumns[index]]) {
+        console.log(
+          "Se modificó el campo " +
+            keyColumns[index] +
+            ". " +
+            "El valor anterior era " +
+            editData[keyColumns[index]] +
+            " y el nuevo valor es " +
+            value +
+            ". El Id del registro es: " +
+            id
+        );
+      }
+    });
+
+    //console.log(currentRefValues);
+    /*
+    refs.current.map((ref, index) => {
+
+      if (ref.current.value !== refValues[index]) {
+        console.log(
+          "Es diferente. El valor anterior era " +
+            refValues[index] +
+            " y el nuevo valor es " +
+            ref.current.value
+        );
+      }
+    });
+    */
   };
 
   return (
@@ -52,15 +101,24 @@ export default function Table({
             </th>
           )}
 
-          {columns.map((col, index) => (
+          {Object.keys(columns).map((key) => (
             <th
-              key={index}
+              key={columns[key]}
               scope="col"
               className="px-6 py-3 text-base text-slate-300"
             >
-              {col}
+              {columns[key]}
             </th>
           ))}
+          {hasActions && (
+            <th
+              key="Actions"
+              scope="col"
+              className="px-6 py-3 text-base text-slate-300"
+            >
+              Actions
+            </th>
+          )}
         </tr>
       </thead>
       {!loading ? (
@@ -85,20 +143,20 @@ export default function Table({
                   </div>
                 </td>
               )}
-              {Object.keys(item).map(
-                (key) =>
+              {Object.keys(columns).map(
+                (key, index) =>
                   key !== "id" && (
                     <td
                       key={`${item.id}-${key}`}
                       scope="row"
                       className="px-6 py-4"
                     >
-                      {!item.edit ? (
+                      {editData.id !== item.id ? (
                         item[key]
                       ) : (
                         <input
                           key={`${item.id}-${key}`}
-                          ref={name}
+                          ref={refs.current[index]}
                           type="text"
                           id="table-search"
                           className="w-28 rounded-lg border-[1.5px] border-stroke bg-transparent px-5 py-3 font-normal text-black outline-none focus:border-color-brand-500 focus:outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter"
@@ -108,127 +166,71 @@ export default function Table({
                     </td>
                   )
               )}
-              <td key={`${item.id}-actions`} className="px-6 py-4">
-                {!item.edit ? (
-                  <>
-                    <button
-                      onClick={() => handleEditButton(index)}
-                      type="button"
-                      className="text-white focus:outline-none font-medium rounded-full text-sm p-2 text-center inline-flex items-center me-2"
-                    >
-                      <svg
-                        className="h-5 w-5 text-color-brand-600 hover:text-color-brand-500"
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 24 24"
-                        width={24}
-                        height={24}
-                        color={"#000000"}
-                        fill={"none"}
+              {hasActions && (
+                <td key={`${item.id}-actions`} className="px-6 py-4">
+                  {!item.edit ? (
+                    <>
+                      <button
+                        onClick={() => handleEditClick(item.id)}
+                        type="button"
+                        className="text-lg tracking-widest text-black focus:outline-none font-extrabold rounded-full p-2 text-center inline-flex items-center me-2"
                       >
-                        <path
-                          d="M3.89089 20.8727L3 21L3.12727 20.1091C3.32086 18.754 3.41765 18.0764 3.71832 17.4751C4.01899 16.8738 4.50296 16.3898 5.47091 15.4218L16.9827 3.91009C17.4062 3.48654 17.618 3.27476 17.8464 3.16155C18.2811 2.94615 18.7914 2.94615 19.2261 3.16155C19.4546 3.27476 19.6663 3.48654 20.0899 3.91009C20.5135 4.33365 20.7252 4.54543 20.8385 4.77389C21.0539 5.20856 21.0539 5.71889 20.8385 6.15356C20.7252 6.38201 20.5135 6.59379 20.0899 7.01735L8.57816 18.5291C7.61022 19.497 7.12625 19.981 6.52491 20.2817C5.92357 20.5823 5.246 20.6791 3.89089 20.8727Z"
+                        ...
+                      </button>
+                      <button
+                        onClick={() => handleSaveClick(item.id)}
+                        type="button"
+                        className="text-lg tracking-widest text-black focus:outline-none font-extrabold rounded-full p-2 text-center inline-flex items-center me-2"
+                      >
+                        ***
+                      </button>
+                    </>
+                  ) : (
+                    <div className="flex">
+                      <button
+                        onClick={() => handleSaveEditButton(index)}
+                        type="button"
+                        className="text-white focus:outline-none font-medium rounded-full text-sm p-2 text-center inline-flex items-center me-2"
+                      >
+                        <svg
+                          className="h-4 w-4 text-black"
+                          width="24"
+                          height="24"
+                          viewBox="0 0 24 24"
+                          strokeWidth="2"
                           stroke="currentColor"
-                          strokeWidth="1.5"
+                          fill="none"
                           strokeLinecap="round"
                           strokeLinejoin="round"
-                        />
-                        <path
-                          d="M6 15L9 18M8.5 12.5L11.5 15.5"
+                        >
+                          <path stroke="none" d="M0 0h24v24H0z" />{" "}
+                          <path d="M5 12l5 5l10 -10" />
+                        </svg>
+                        <span className="sr-only">Icon description</span>
+                      </button>
+                      <button
+                        onClick={() => handleCancelEditButton(item, index)}
+                        type="button"
+                        className="text-white focus:outline-none font-medium rounded-full text-sm p-2 text-center inline-flex items-center me-2"
+                      >
+                        <svg
+                          className="h-4 w-4 text-black"
+                          viewBox="0 0 24 24"
+                          fill="none"
                           stroke="currentColor"
-                          strokeWidth="1.5"
+                          strokeWidth="2"
                           strokeLinecap="round"
                           strokeLinejoin="round"
-                        />
-                      </svg>
-                      <span className="sr-only">Icon description</span>
-                    </button>
-                    <button
-                      onClick={(event) => handleDeleteItems(item.id, event)}
-                      type="button"
-                      className="text-white focus:outline-none font-medium rounded-full text-sm p-2 text-center inline-flex items-center me-2"
-                    >
-                      <svg
-                        className="h-5 w-5 text-black hover:text-red-600"
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 24 24"
-                        width={24}
-                        height={24}
-                        color={"#000000"}
-                        fill={"none"}
-                      >
-                        <path
-                          d="M19.5 5.5L18.8803 15.5251C18.7219 18.0864 18.6428 19.3671 18.0008 20.2879C17.6833 20.7431 17.2747 21.1273 16.8007 21.416C15.8421 22 14.559 22 11.9927 22C9.42312 22 8.1383 22 7.17905 21.4149C6.7048 21.1257 6.296 20.7408 5.97868 20.2848C5.33688 19.3626 5.25945 18.0801 5.10461 15.5152L4.5 5.5"
-                          stroke="currentColor"
-                          strokeWidth="1.5"
-                          strokeLinecap="round"
-                        />
-                        <path
-                          d="M3 5.5H21M16.0557 5.5L15.3731 4.09173C14.9196 3.15626 14.6928 2.68852 14.3017 2.39681C14.215 2.3321 14.1231 2.27454 14.027 2.2247C13.5939 2 13.0741 2 12.0345 2C10.9688 2 10.436 2 9.99568 2.23412C9.8981 2.28601 9.80498 2.3459 9.71729 2.41317C9.32164 2.7167 9.10063 3.20155 8.65861 4.17126L8.05292 5.5"
-                          stroke="currentColor"
-                          strokeWidth="1.5"
-                          strokeLinecap="round"
-                        />
-                        <path
-                          d="M9.5 16.5L9.5 10.5"
-                          stroke="currentColor"
-                          strokeWidth="1.5"
-                          strokeLinecap="round"
-                        />
-                        <path
-                          d="M14.5 16.5L14.5 10.5"
-                          stroke="currentColor"
-                          strokeWidth="1.5"
-                          strokeLinecap="round"
-                        />
-                      </svg>
-                      <span className="sr-only">Icon description</span>
-                    </button>
-                  </>
-                ) : (
-                  <div className="flex">
-                    <button
-                      onClick={() => handleSaveEditButton(index)}
-                      type="button"
-                      className="text-white focus:outline-none font-medium rounded-full text-sm p-2 text-center inline-flex items-center me-2"
-                    >
-                      <svg
-                        className="h-4 w-4 text-black"
-                        width="24"
-                        height="24"
-                        viewBox="0 0 24 24"
-                        strokeWidth="2"
-                        stroke="currentColor"
-                        fill="none"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path stroke="none" d="M0 0h24v24H0z" />{" "}
-                        <path d="M5 12l5 5l10 -10" />
-                      </svg>
-                      <span className="sr-only">Icon description</span>
-                    </button>
-                    <button
-                      onClick={() => handleCancelEditButton(item, index)}
-                      type="button"
-                      className="text-white focus:outline-none font-medium rounded-full text-sm p-2 text-center inline-flex items-center me-2"
-                    >
-                      <svg
-                        className="h-4 w-4 text-black"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <line x1="18" y1="6" x2="6" y2="18" />{" "}
-                        <line x1="6" y1="6" x2="18" y2="18" />
-                      </svg>
-                      <span className="sr-only">Icon description</span>
-                    </button>
-                  </div>
-                )}
-              </td>
+                        >
+                          <line x1="18" y1="6" x2="6" y2="18" />{" "}
+                          <line x1="6" y1="6" x2="18" y2="18" />
+                        </svg>
+                        <span className="sr-only">Icon description</span>
+                      </button>
+                    </div>
+                  )}
+                </td>
+              )}
             </tr>
           ))}
         </tbody>
