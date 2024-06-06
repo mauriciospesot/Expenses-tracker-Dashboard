@@ -1,6 +1,5 @@
-import { forwardRef, useRef, useImperativeHandle, useContext } from "react";
+import { forwardRef, useRef, useImperativeHandle } from "react";
 import { createPortal } from "react-dom";
-import { ExpenseContext } from "../store/expense-context";
 
 const inputStyle =
   "w-full rounded-lg border-[1.5px] border-stroke bg-transparent px-5 py-3 font-normal text-black outline-none focus:border-color-brand-500 focus:outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter";
@@ -18,8 +17,10 @@ const MONTHS = [
   "Noviembre",
   "Diciembre",
 ];
-const NewExpenseModal = forwardRef(function Modal({ title }, ref) {
-  const { setExpenses, setLoading } = useContext(ExpenseContext);
+const NewExpenseModal = forwardRef(function Modal(
+  { title, onCreateExpenses },
+  ref
+) {
   const dialog = useRef();
   const month = useRef();
   const year = useRef();
@@ -39,29 +40,7 @@ const NewExpenseModal = forwardRef(function Modal({ title }, ref) {
     };
   });
 
-  const createExpenses = async (expenses) => {
-    setLoading((prevLoadingState) => {
-      const updateLoading = !prevLoadingState;
-
-      return updateLoading;
-    });
-    const response = await fetch(`http://localhost:3000/expenses`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(expenses),
-    });
-    const data = await response.json();
-    setLoading((prevLoadingState) => {
-      const updateLoading = !prevLoadingState;
-
-      return updateLoading;
-    });
-    return data;
-  };
-
-  function handleAddExpense() {
+  const handleAddExpense = async () => {
     let newExpenses = [];
     const initMonth = month.current.value;
     let initMonthIndex = MONTHS.findIndex((x) => x == initMonth);
@@ -89,16 +68,9 @@ const NewExpenseModal = forwardRef(function Modal({ title }, ref) {
         initMonthIndex = 0;
       }
     }
-    const newExp = createExpenses(newExpenses);
-    console.log("New Expense");
-    console.log(newExp);
 
-    setExpenses((prevExpenses) => {
-      const updateExpenses = [...prevExpenses, ...newExpenses];
-
-      return updateExpenses;
-    });
-  }
+    onCreateExpenses(newExpenses);
+  };
 
   return createPortal(
     <dialog className="bg-white rounded" id="modal" ref={dialog}>

@@ -9,6 +9,7 @@ export const ExpenseContext = createContext({
   setTemporalExpenses: () => {},
   searchExpenses: () => {},
   deleteExpenses: () => {},
+  createExpenses: () => {},
   editExpense: () => {},
   cancelExpenseEdit: () => {},
   saveExpenseEdit: () => {},
@@ -29,6 +30,65 @@ export default function ExpenseContextProvider({ children }) {
     const response = await fetch(`http://localhost:3000/expenses`);
     const data = await response.json();
     setExpenses(data);
+  };
+
+  const createExpenses = async (expenses) => {
+    setLoading((prevLoadingState) => {
+      const updateLoading = !prevLoadingState;
+
+      return updateLoading;
+    });
+    const response = await fetch(`http://localhost:3000/expenses`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(expenses),
+    });
+
+    const data = await response.json();
+    setLoading((prevLoadingState) => {
+      const updateLoading = !prevLoadingState;
+
+      return updateLoading;
+    });
+    return data;
+  };
+
+  const deleteExpenses = async (expenseIds) => {
+    const response = await fetch(`http://localhost:3000/delete-expenses`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(expenseIds),
+    });
+
+    const data = await response.json();
+
+    if (data.status === "200") {
+      loadExpenses();
+    }
+
+    return data;
+  };
+
+  const updateExpense = async (updatedExpense) => {
+    const response = await fetch(`http://localhost:3000/update-expense`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(updatedExpense),
+    });
+
+    const data = await response.json();
+
+    if (data.status === "200") {
+      loadExpenses();
+    }
+
+    return data;
   };
 
   useEffect(() => {
@@ -58,33 +118,6 @@ export default function ExpenseContextProvider({ children }) {
     }
   }
 
-  const deleteExpenses = async (expenseIds) => {
-    console.log(JSON.stringify(expenseIds));
-    const response = await fetch(`http://localhost:3000/delete-expenses`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(expenseIds),
-    });
-
-    const data = await response.json();
-
-    if (data.status === "200") {
-      loadExpenses();
-    }
-
-    return data;
-  };
-
-  function handleEditExpense(index) {
-    setTemporalExpenses((prevExpense) => {
-      const updateExpense = [...prevExpense];
-      updateExpense[index].edit = true;
-      return updateExpense;
-    });
-  }
-
   function handleCancelEdit(expense, index) {
     setTemporalExpenses((prevExpense) => {
       const updateExpense = [...prevExpense];
@@ -112,7 +145,8 @@ export default function ExpenseContextProvider({ children }) {
     setTemporalExpenses,
     searchExpenses: handleSearchExpenses,
     deleteExpenses: deleteExpenses,
-    editExpense: handleEditExpense,
+    createExpenses: createExpenses,
+    updateExpense: updateExpense,
     cancelExpenseEdit: handleCancelEdit,
     saveExpenseEdit: handleSaveEdit,
   };

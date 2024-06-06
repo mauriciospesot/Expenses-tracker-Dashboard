@@ -3,243 +3,73 @@ import NewExpenseModal from "./NewExpenseModal";
 import { ExpenseContext } from "../store/expense-context.jsx";
 import { useRef, useEffect, useState, useContext } from "react";
 
+const Alert = ({ show, message, status, action }) => {
+  let color = "";
+
+  if (status === "success") {
+    color = "bg-teal-100 border-teal-200 text-teal-800";
+  } else if (status === "info") {
+    color = "bg-indigo-100 border-indigo-200 text-indigo-800";
+  } else if (status === "error") {
+    color = "bg-red-100 border-red-200 text-red-800";
+  }
+
+  return (
+    <div
+      className={`fixed top-1/8 left-1/2 -translate-x-1/2 transition-transform rounded-sm duration-500 ease-in-out transform ${
+        show ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0"
+      } mt-2 border ${color} text-sm p-4`}
+      role="alert"
+    >
+      <span className="font-bold">{action}</span> {message}
+    </div>
+  );
+};
+
 export default function AllExpenses({ label }) {
   const {
-    immutableExpenses,
     temporalExpenses,
-    loading,
-    setTemporalExpenses,
-    editExpense,
-    cancelExpenseEdit,
-    saveExpenseEdit,
+    updateExpense,
+    setExpenses,
     searchExpenses,
     deleteExpenses,
+    createExpenses,
   } = useContext(ExpenseContext);
 
-  const [total, setTotal] = useState(0);
-  const [generalFilterIsOpen, setGeneralFilterIsOpen] = useState(false);
   const [selectedExpenseTableItems, setSelectedExpenseTableItem] = useState([]);
-  const [filterState, setFilterState] = useState({
-    month: {
-      options: [],
-      selected: [],
-      opened: false,
-    },
-    year: {
-      options: [],
-      selected: [],
-      opened: false,
-    },
-    owner: {
-      options: [],
-      selected: [],
-      opened: false,
-    },
-    credit_card: {
-      options: [],
-      selected: [],
-      opened: false,
-    },
-    quota: {
-      options: [],
-      selected: [],
-      opened: false,
-    },
+  const [alertState, setAlertState] = useState({
+    isVisible: false,
+    message: "",
+    status: "",
   });
+
+  useEffect(() => {
+    if (alertState.isVisible) {
+      const timer = setTimeout(() => {
+        setAlertState((prevAlertState) => {
+          const updateAlertState = { ...prevAlertState, isVisible: false };
+
+          return updateAlertState;
+        });
+      }, 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [alertState]);
 
   // The column keys must be identical to the database columns.
   let columns = {
-    name: "Expense name",
-    month: "Month",
-    year: "Year",
-    owner: "Owner",
-    category: "Category",
-    description: "Description",
-    credit_card: "Credit Card",
-    quota: "Quota",
-    price: "Price",
+    name: { label: "Expense name", dataType: "text" },
+    month: { label: "Month", dataType: "text" },
+    year: { label: "Year", dataType: "text" },
+    owner: { label: "Owner", dataType: "text" },
+    category: { label: "Category", dataType: "text" },
+    description: { label: "Description", dataType: "text" },
+    credit_card: { label: "Credit Card", dataType: "text" },
+    quota: { label: "Quota", dataType: "text" },
+    price: { label: "Price", dataType: "currency" },
   };
 
-  const name = useRef();
-  const month = useRef();
-  const year = useRef();
-  const owner = useRef();
-  const category = useRef();
-  const description = useRef();
-  const credit_card = useRef();
-  const quota = useRef();
-  const price = useRef();
   const modal = useRef();
-
-  useEffect(() => {
-    let expenseMonths = [];
-    let expenseYears = [];
-    let expenseOwners = [];
-    let expenseCreditCards = [];
-    let expenseQuotas = [];
-
-    immutableExpenses.map((expense) => {
-      expenseMonths.push(expense.month);
-      expenseYears.push(expense.year);
-      expenseOwners.push(expense.owner);
-      expenseCreditCards.push(expense.credit_card);
-      expenseQuotas.push(expense.quota);
-    });
-
-    setFilterState((prevFilters) => {
-      const updateFilters = {
-        month: {
-          ...prevFilters.month,
-          options: [...Array.from(new Set(expenseMonths))],
-        },
-        year: {
-          ...prevFilters.year,
-          options: [...Array.from(new Set(expenseYears))],
-        },
-        owner: {
-          ...prevFilters.owner,
-          options: [...Array.from(new Set(expenseOwners))],
-        },
-        credit_card: {
-          ...prevFilters.credit_card,
-          options: [...Array.from(new Set(expenseCreditCards))],
-        },
-        quota: {
-          ...prevFilters.quota,
-          options: [...Array.from(new Set(expenseQuotas))],
-        },
-      };
-
-      return updateFilters;
-    });
-  }, [immutableExpenses]);
-
-  useEffect(() => {
-    const totalTemp = temporalExpenses.reduce(
-      (sum, expense) => sum + +expense.price,
-      0
-    );
-    setTotal(totalTemp);
-  }, [temporalExpenses]);
-
-  function handleSelectedExpenses(id, event) {
-    setSelectedExpenseTableItem((prevSelectedExpenseTableItems) => {
-      let updateSelectedExpenseTableItems;
-
-      if (!event.target.checked) {
-        updateSelectedExpenseTableItems = prevSelectedExpenseTableItems.filter(
-          (item) => item.id !== id
-        );
-      } else {
-        updateSelectedExpenseTableItems = [
-          ...prevSelectedExpenseTableItems,
-          {
-            checkBoxValue: event.target.checked,
-          },
-        ];
-      }
-
-      return updateSelectedExpenseTableItems;
-    });
-  }
-
-  function handleDeleteButton(index) {
-    deleteExpense(index);
-  }
-
-  function handleEditButton(index) {
-    editExpense(index);
-  }
-
-  function handleCancelEditButton(expense, index) {
-    cancelExpenseEdit(expense, index);
-  }
-
-  function handleSaveEditButton(index) {
-    const changes = {
-      month: month.current.value,
-      year: year.current.value,
-      owner: owner.current.value,
-      name: name.current.value,
-      category: category.current.value,
-      description: description.current.value,
-      credit_card: credit_card.current.value,
-      quota: quota.current.value,
-      price: price.current.value,
-      edit: false,
-    };
-    saveExpenseEdit(changes, index);
-  }
-
-  function handleMonthFilterIsOpen() {
-    setFilterState((prevFilterState) => {
-      const updateFilterState = {
-        ...prevFilterState,
-        month: {
-          ...prevFilterState.month,
-          opened: !prevFilterState.month.opened,
-        },
-      };
-
-      return updateFilterState;
-    });
-  }
-
-  function handleOwnerFilterIsOpen() {
-    setFilterState((prevFilterState) => {
-      const updateFilterState = {
-        ...prevFilterState,
-        owner: {
-          ...prevFilterState.owner,
-          opened: !prevFilterState.owner.opened,
-        },
-      };
-
-      return updateFilterState;
-    });
-  }
-
-  function handleCreditCardFilterIsOpen() {
-    setFilterState((prevFilterState) => {
-      const updateFilterState = {
-        ...prevFilterState,
-        credit_card: {
-          ...prevFilterState.credit_card,
-          opened: !prevFilterState.credit_card.opened,
-        },
-      };
-
-      return updateFilterState;
-    });
-  }
-
-  function handleQuotaFilterIsOpen() {
-    setFilterState((prevFilterState) => {
-      const updateFilterState = {
-        ...prevFilterState,
-        quota: {
-          ...prevFilterState.quota,
-          opened: !prevFilterState.quota.opened,
-        },
-      };
-
-      return updateFilterState;
-    });
-  }
-
-  function handleYearFilterIsOpen() {
-    setFilterState((prevFilterState) => {
-      const updateFilterState = {
-        ...prevFilterState,
-        year: {
-          ...prevFilterState.year,
-          opened: !prevFilterState.year.opened,
-        },
-      };
-
-      return updateFilterState;
-    });
-  }
 
   function handleOpenNewExpenseModal() {
     modal.current.open();
@@ -254,70 +84,71 @@ export default function AllExpenses({ label }) {
     setSelectedExpenseTableItem([]);
   }
 
-  function handleSelectValue(event, columnName) {
-    setFilterState((prevFilters) => {
-      let updateFilters = { ...prevFilters };
-      if (
-        !event.target.checked &&
-        prevFilters[columnName].selected.includes(event.target.value)
-      ) {
-        updateFilters[columnName].selected = prevFilters[
-          columnName
-        ].selected.filter((value) => value != event.target.value);
-      } else if (event.target.checked) {
-        updateFilters = { ...prevFilters };
-        updateFilters[columnName] = {
-          ...prevFilters[columnName],
-          selected: [...prevFilters[columnName].selected, event.target.value],
-        };
-      }
+  const handleDeleteItems = async (expenseIds) => {
+    const data = await deleteExpenses(expenseIds);
+    console.log(data);
 
-      return updateFilters;
-    });
-  }
+    if (data.status === "200") {
+      setAlertState({
+        isVisible: true,
+        message: "The expense was successfully deleted!",
+        status: "success",
+        action: "Deleted!",
+      });
+    }
+  };
 
-  function handleApplyFilter() {
-    setTemporalExpenses(() => {
-      const updateExpenses = immutableExpenses.filter(
-        (expense) =>
-          (filterState["month"].selected == 0 ||
-            filterState["month"].selected.includes(expense["month"])) &&
-          (filterState["year"].selected == 0 ||
-            filterState["year"].selected.includes(expense["year"])) &&
-          (filterState["owner"].selected == 0 ||
-            filterState["owner"].selected.includes(expense["owner"])) &&
-          (filterState["credit_card"].selected == 0 ||
-            filterState["credit_card"].selected.includes(
-              expense["credit_card"]
-            )) &&
-          (filterState["quota"].selected == 0 ||
-            filterState["quota"].selected.includes(expense["quota"]))
-      );
+  const handleUpdateRow = async (updatedRow) => {
+    const response = await updateExpense(updatedRow);
 
-      return updateExpenses;
-    });
-  }
+    if (response.status === "200") {
+      setAlertState({
+        isVisible: true,
+        message: "The expense was successfully updated!",
+        status: "success",
+        action: "Updated!",
+      });
+    }
+    return response;
+  };
 
-  function handleClearFilters() {
-    setTemporalExpenses(immutableExpenses);
-    window.location.reload();
-  }
+  const handleCreateExpense = async (newExpenses) => {
+    const response = await createExpenses(newExpenses);
 
-  function handleGeneralFilterIsOpen() {
-    setGeneralFilterIsOpen((prevFilterIsOpen) => !prevFilterIsOpen);
-  }
+    if (response.status === "200") {
+      setAlertState({
+        isVisible: true,
+        message: "The expense was successfully inserted!",
+        status: "success",
+        action: "Inserted!",
+      });
 
-  const handleDeleteItems = (expenseIds) => {
-    deleteExpenses(expenseIds);
+      setExpenses((prevExpenses) => {
+        const updateExpenses = [...prevExpenses, ...response.body.expenses];
+
+        return updateExpenses;
+      });
+    }
   };
 
   return (
     <>
-      <NewExpenseModal ref={modal} title="Create New Expense"></NewExpenseModal>
+      <NewExpenseModal
+        ref={modal}
+        title="Create New Expense"
+        onCreateExpenses={handleCreateExpense}
+      ></NewExpenseModal>
       <div className="w-full bg-secondaryGray-300">
         <div className="mt-16">
           <h1 className="m-5 ml-9 text-4xl font-bold">{label}</h1>
           <div className="overflow-x-auto mb-12 shadow-md sm:rounded-3xl mx-6">
+            <Alert
+              show={alertState.isVisible}
+              message={alertState.message}
+              status={alertState.status}
+              action={alertState.action}
+            />
+
             <div className="flex justify-between bg-white">
               <div className="flex justify-normal m-5 p-3">
                 <input
@@ -327,7 +158,7 @@ export default function AllExpenses({ label }) {
                   className="w-80 rounded-full border-[1.5px] border-stroke bg-secondaryGray-300 px-5 py-3 font-normal text-black outline-none focus:border-color-brand-500 focus:outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter"
                   placeholder="Search for expenses"
                 />
-                <button onClick={handleClearFilters} className="ml-3">
+                <button className="ml-3">
                   <svg
                     className="h-6 w-6 text-gray-500 hover:text-color-brand-500"
                     xmlns="http://www.w3.org/2000/svg"
@@ -405,6 +236,7 @@ export default function AllExpenses({ label }) {
               onDelete={handleDeleteItems}
               hasTotal={true}
               hasActions={true}
+              onUpdatedRow={handleUpdateRow}
             />
           </div>
         </div>
