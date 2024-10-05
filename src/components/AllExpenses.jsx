@@ -2,6 +2,16 @@ import Table from "./Table.jsx";
 import NewExpenseModal from "./NewExpenseModal";
 import { ExpenseContext } from "../store/expense-context.jsx";
 import { useRef, useEffect, useState, useContext } from "react";
+import Filters from "./Filters.jsx";
+import Stats from "./Stats.jsx";
+import CreditCardStats from "./CreditCardStats.jsx";
+import ResponsiveChart from "./ResponsiveChart.jsx";
+import {
+  getCurrentMonthNumber,
+  sumObjectProp,
+  getCurrentYear,
+} from "../Utils.jsx";
+import MONTHS from "../Constants.jsx";
 
 const Alert = ({ show, message, status, action }) => {
   let color = "";
@@ -29,19 +39,226 @@ const Alert = ({ show, message, status, action }) => {
 export default function AllExpenses({ label }) {
   const {
     temporalExpenses,
+    immutableExpenses,
     updateExpense,
+    setTemporalExpenses,
     setExpenses,
     searchExpenses,
     deleteExpenses,
     createExpenses,
   } = useContext(ExpenseContext);
 
+  const [visaChartData, setVisaChartData] = useState({
+    options: {
+      chart: {
+        id: "basic-bar",
+        height: "auto",
+        width: "auto",
+      },
+      xaxis: {
+        categories: [
+          "Ago/24",
+          "Sep/24",
+          "Oct/24",
+          "Nov/24",
+          "Dic/24",
+          "Ene/25",
+          "Feb/25",
+          "Mar/25",
+          "Abr/25",
+        ],
+      },
+    },
+    series: [
+      {
+        name: "$",
+        data: [
+          1300000, 1250000, 1500000, 900000, 850000, 325500, 150000, 89600,
+        ],
+      },
+    ],
+  });
+  const [visa, setVisa] = useState();
+  const [mastercard, setMastercard] = useState();
+  const [lastMonthTotalAmount, setLastMonthTotalAmount] = useState();
+  const [lastMonthMauri, setLastMonthMauri] = useState();
+  const [lastMonthPau, setLastMonthPau] = useState();
+  const [nextMonthTotalAmount, setNextMonthTotalAmount] = useState();
+  const [nextMonthMauri, setNextMonthMauri] = useState();
+  const [nextMonthPau, setNextMonthPau] = useState();
+  const [currentMonth, setCurrentMonth] = useState();
+  const [lastMonth, setLastMonth] = useState();
+  const [years, setYears] = useState([]);
+  const [months, setMonths] = useState([]);
+  const [owners, setOwners] = useState([]);
+  const [payment, setPayment] = useState([]);
+  const [quotas, setQuotas] = useState([]);
   const [selectedExpenseTableItems, setSelectedExpenseTableItem] = useState([]);
+  const [filters, setFilters] = useState({ visibility: false });
   const [alertState, setAlertState] = useState({
     isVisible: false,
     message: "",
     status: "",
   });
+
+  useEffect(() => {
+    const currentMonth = getCurrentMonthNumber();
+    setCurrentMonth(MONTHS[currentMonth]);
+    setLastMonth(MONTHS[currentMonth - 1]);
+    const currentYear = getCurrentYear();
+
+    const getLastMonthByPerson = (arr, person) => {
+      return arr.filter((item) => {
+        const currentMonth = getCurrentMonthNumber();
+        const currentYear = getCurrentYear();
+
+        return (
+          item.month === MONTHS[currentMonth - 1] &&
+          +item.year === +currentYear &&
+          item.owner === person
+        );
+      });
+    };
+
+    const lastMonthExpenses = immutableExpenses.filter((item) => {
+      return (
+        item.month === MONTHS[currentMonth - 1] && +item.year === +currentYear
+      );
+    });
+    const lastMonthMauri = getLastMonthByPerson(immutableExpenses, "Mauri");
+
+    const lastMonthPau = getLastMonthByPerson(immutableExpenses, "Pau");
+
+    const lastMonthShare = getLastMonthByPerson(
+      immutableExpenses,
+      "Compartido"
+    );
+
+    const visaCurrentMonth = immutableExpenses.filter((item) => {
+      return (
+        item.month === MONTHS[currentMonth] &&
+        +item.year === +currentYear &&
+        item.payment === "VISA BLACK"
+      );
+    });
+
+    const mastercardCurrentMonth = immutableExpenses.filter((item) => {
+      return (
+        item.month === MONTHS[currentMonth] &&
+        +item.year === +currentYear &&
+        item.payment === "MASTERCARD BLACK"
+      );
+    });
+
+    const visaTotalAmount = sumObjectProp(visaCurrentMonth, "price");
+    const mastercardTotalAmount = sumObjectProp(
+      mastercardCurrentMonth,
+      "price"
+    );
+    const lastMonthTotalAmount = sumObjectProp(lastMonthExpenses, "price");
+    const lastMonthTotalShare = sumObjectProp(lastMonthShare, "price");
+    let lastMonthTotalMauri = sumObjectProp(lastMonthMauri, "price");
+    lastMonthTotalMauri += lastMonthTotalShare / 2;
+    let lastMonthTotalPau = sumObjectProp(lastMonthPau, "price");
+    lastMonthTotalPau += lastMonthTotalShare / 2;
+
+    const formattedVisa = visaTotalAmount.toLocaleString("es-ES", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+
+    const formattedMastercard = mastercardTotalAmount.toLocaleString("es-ES", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+
+    const formattedTotal = lastMonthTotalAmount.toLocaleString("es-ES", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+    const formattedLastMonthMauri = lastMonthTotalMauri.toLocaleString(
+      "es-ES",
+      {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }
+    );
+    const formattedLastMonthPau = lastMonthTotalPau.toLocaleString("es-ES", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+
+    setVisa(formattedVisa);
+    setMastercard(formattedMastercard);
+    setLastMonthTotalAmount(formattedTotal);
+    setLastMonthMauri(formattedLastMonthMauri);
+    setLastMonthPau(formattedLastMonthPau);
+
+    const nextMonthExpenses = immutableExpenses.filter((item) => {
+      return item.month === MONTHS[currentMonth] && +item.year === +currentYear;
+    });
+    const nextMonthMauri = immutableExpenses.filter((item) => {
+      return (
+        item.month === MONTHS[currentMonth] &&
+        +item.year === +currentYear &&
+        item.owner === "Mauri"
+      );
+    });
+
+    const nextMonthPau = immutableExpenses.filter((item) => {
+      return (
+        item.month === MONTHS[currentMonth] &&
+        +item.year === +currentYear &&
+        item.owner === "Pau"
+      );
+    });
+
+    const nextMonthShare = immutableExpenses.filter((item) => {
+      return (
+        item.month === MONTHS[currentMonth] &&
+        +item.year === +currentYear &&
+        item.owner === "Compartido"
+      );
+    });
+
+    const nextMonthTotalAmount = nextMonthExpenses.reduce((sum, item) => {
+      return sum + parseFloat(item.price);
+    }, 0);
+    const nextMonthTotalShare = nextMonthShare.reduce((sum, item) => {
+      return sum + parseFloat(item.price);
+    }, 0);
+    let nextMonthTotalMauri = nextMonthMauri.reduce((sum, item) => {
+      return sum + parseFloat(item.price);
+    }, 0);
+    nextMonthTotalMauri += nextMonthTotalShare / 2;
+    let nextMonthTotalPau = nextMonthPau.reduce((sum, item) => {
+      return sum + parseFloat(item.price);
+    }, 0);
+    nextMonthTotalPau += nextMonthTotalShare / 2;
+
+    const formattedNextMonthTotal = nextMonthTotalAmount.toLocaleString(
+      "es-ES",
+      {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }
+    );
+    const formattedNextMonthMauri = nextMonthTotalMauri.toLocaleString(
+      "es-ES",
+      {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }
+    );
+    const formattedNextMonthPau = nextMonthTotalPau.toLocaleString("es-ES", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+
+    setNextMonthTotalAmount(formattedNextMonthTotal);
+    setNextMonthMauri(formattedNextMonthMauri);
+    setNextMonthPau(formattedNextMonthPau);
+  }, [immutableExpenses]);
 
   useEffect(() => {
     if (alertState.isVisible) {
@@ -64,10 +281,27 @@ export default function AllExpenses({ label }) {
     owner: { label: "Owner", dataType: "text" },
     category: { label: "Category", dataType: "text" },
     description: { label: "Description", dataType: "text" },
-    credit_card: { label: "Credit Card", dataType: "text" },
+    payment: { label: "Payment", dataType: "text" },
     quota: { label: "Quota", dataType: "text" },
     price: { label: "Price", dataType: "currency" },
   };
+
+  const visaColumns = {
+    month: { label: "Mes", dataType: "text" },
+    total: { label: "Total", dataType: "currency" },
+  };
+
+  const visaData = [
+    { month: "Ago/24", total: 1350000, id: 0 },
+    { month: "Sep/24", total: 750000, id: 1 },
+    { month: "Oct/24", total: 650658, id: 2 },
+    { month: "Nov/24", total: 500200, id: 3 },
+    { month: "Dic/24", total: 400000, id: 4 },
+    { month: "Ene/25", total: 200050, id: 5 },
+    { month: "Feb/25", total: 150325, id: 6 },
+    { month: "Mar/25", total: 88520, id: 7 },
+    { month: "Abr/25", total: 15000, id: 8 },
+  ];
 
   const modal = useRef();
 
@@ -86,7 +320,6 @@ export default function AllExpenses({ label }) {
 
   const handleDeleteItems = async (expenseIds) => {
     const data = await deleteExpenses(expenseIds);
-    console.log(data);
 
     if (data.status === "200") {
       setAlertState({
@@ -131,6 +364,54 @@ export default function AllExpenses({ label }) {
     }
   };
 
+  const showFilters = () => {
+    const getUniqueValues = (column) => {
+      return [...new Set(temporalExpenses.map((item) => item[column]))];
+    };
+    setYears(getUniqueValues("year"));
+    setMonths(getUniqueValues("month"));
+    setOwners(getUniqueValues("owner"));
+    setPayment(getUniqueValues("payment"));
+    setQuotas(getUniqueValues("quota"));
+
+    setFilters((prevFilters) => {
+      const updateFilters = {
+        ...prevFilters,
+        visibility: !prevFilters.visibility,
+      };
+
+      return updateFilters;
+    });
+  };
+
+  const handleAplyFilters = (filters) => {
+    const filteredExpenses = immutableExpenses.filter((item) => {
+      return (
+        (filters.year === undefined ||
+          filters.year === "None" ||
+          item.year === filters.year) &&
+        (filters.month === undefined ||
+          filters.month === "None" ||
+          item.month === filters.month) &&
+        (filters.payment === undefined ||
+          filters.payment === "None" ||
+          item.payment === filters.payment) &&
+        (filters.owner === undefined ||
+          filters.owner === "None" ||
+          item.owner === filters.owner) &&
+        (filters.quota === undefined ||
+          filters.quota === "None" ||
+          item.quota === filters.quota)
+      );
+    });
+
+    setTemporalExpenses(filteredExpenses);
+  };
+
+  const handleResetFilters = () => {
+    setTemporalExpenses(immutableExpenses);
+  };
+
   return (
     <>
       <NewExpenseModal
@@ -138,10 +419,77 @@ export default function AllExpenses({ label }) {
         title="Create New Expense"
         onCreateExpenses={handleCreateExpense}
       ></NewExpenseModal>
+
       <div className="w-full bg-secondaryGray-300">
+        <div className="mt-20 m-5 grid grid-cols-12 gap-2">
+          <div className="shadow-sm col-span-2 rounded-md bg-white">
+            <Stats
+              label={"Total "}
+              value={nextMonthTotalAmount}
+              valueSize="text-2xl"
+              labelSize="text-base"
+            ></Stats>
+          </div>
+          <div className="shadow-sm col-span-2 rounded-md bg-white">
+            <Stats
+              label={"Mauri "}
+              value={nextMonthMauri}
+              valueSize="text-2xl"
+              labelSize="text-base"
+            ></Stats>
+          </div>
+          <div className="shadow-sm col-span-2 rounded-md bg-white">
+            <Stats
+              label={"Pau "}
+              value={nextMonthPau}
+              valueSize="text-2xl"
+              labelSize="text-base"
+            ></Stats>
+          </div>
+          <div className="shadow-sm col-span-2 rounded-md bg-white p-4">
+            <CreditCardStats
+              value={visa}
+              valueSize="text-2xl"
+              labelSize="text-base"
+              cardType="visa"
+              imgSize="h-3"
+            ></CreditCardStats>
+            <div className="mt-10">
+              <Table
+                columns={visaColumns}
+                data={visaData}
+                hasSelectRow={false}
+                hasTotal={false}
+                hasActions={false}
+                overflow="relative max-h-[310px] overflow-y-auto"
+              />
+            </div>
+          </div>
+          <div className="shadow-sm col-span-2 rounded-md bg-white p-4">
+            <CreditCardStats
+              value={mastercard}
+              valueSize="text-2xl"
+              labelSize="text-base"
+              imgSize="h-4"
+            ></CreditCardStats>
+            <div className="mt-10">
+              <Table
+                columns={visaColumns}
+                data={visaData}
+                hasSelectRow={false}
+                hasTotal={false}
+                hasActions={false}
+                overflow="relative max-h-[310px] overflow-y-auto"
+              />
+            </div>
+          </div>
+          <div className="col-span-8 bg-white shadow-sm rounded-md">
+            <ResponsiveChart></ResponsiveChart>
+          </div>
+        </div>
         <div className="mt-16">
           <h1 className="m-5 ml-9 text-4xl font-bold">{label}</h1>
-          <div className="overflow-x-auto mb-12 shadow-md sm:rounded-3xl mx-6">
+          <div className="overflow-x-auto mb-12 mx-6">
             <Alert
               show={alertState.isVisible}
               message={alertState.message}
@@ -158,6 +506,22 @@ export default function AllExpenses({ label }) {
                   className="w-80 rounded-full border-[1.5px] border-stroke bg-secondaryGray-300 px-5 py-3 font-normal text-black outline-none focus:border-color-brand-500 focus:outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter"
                   placeholder="Search for expenses"
                 />
+                <button onClick={showFilters} className="ml-3">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={1.5}
+                    stroke="currentColor"
+                    className="h-6 w-6 text-gray-500 hover:text-color-brand-500"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 0 1-.659 1.591l-5.432 5.432a2.25 2.25 0 0 0-.659 1.591v2.927a2.25 2.25 0 0 1-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 0 0-.659-1.591L3.659 7.409A2.25 2.25 0 0 1 3 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0 1 12 3Z"
+                    />
+                  </svg>
+                </button>
                 <button className="ml-3">
                   <svg
                     className="h-6 w-6 text-gray-500 hover:text-color-brand-500"
@@ -229,6 +593,43 @@ export default function AllExpenses({ label }) {
                 + Add expense
               </button>
             </div>
+            <Filters
+              handleAplyFilters={handleAplyFilters}
+              handleResetFilters={handleResetFilters}
+              visibility={filters.visibility}
+              inputs={[
+                {
+                  type: "picklist",
+                  label: "Year",
+                  options: ["None", ...years],
+                  column: "year",
+                },
+                {
+                  type: "picklist",
+                  label: "Month",
+                  options: ["None", ...months],
+                  column: "month",
+                },
+                {
+                  type: "picklist",
+                  label: "Owner",
+                  options: ["None", ...owners],
+                  column: "owner",
+                },
+                {
+                  type: "picklist",
+                  label: "Payment",
+                  options: ["None", ...payment],
+                  column: "payment",
+                },
+                {
+                  type: "picklist",
+                  label: "Quota",
+                  options: ["None", ...quotas],
+                  column: "quota",
+                },
+              ]}
+            ></Filters>
             <Table
               columns={columns}
               data={temporalExpenses}
@@ -237,6 +638,7 @@ export default function AllExpenses({ label }) {
               hasTotal={true}
               hasActions={true}
               onUpdatedRow={handleUpdateRow}
+              overflow="relative max-h-[650px] overflow-y-auto"
             />
           </div>
         </div>

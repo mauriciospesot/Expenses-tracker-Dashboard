@@ -7,11 +7,9 @@ export default function App() {
   }
 
   return (
-    <div className="font-dmsans">
-      <div className="flex">
-        <SideBar onOpen={handleOpenExpenses}></SideBar>
-        <MainContainer></MainContainer>
-      </div>
+    <div className="flex font-dmsans">
+      <SideBar onOpen={handleOpenExpenses}></SideBar>
+      <MainContainer></MainContainer>
     </div>
   );
 }

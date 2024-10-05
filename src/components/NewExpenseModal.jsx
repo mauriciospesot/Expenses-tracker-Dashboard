@@ -28,7 +28,7 @@ const NewExpenseModal = forwardRef(function Modal(
   const expenseName = useRef();
   const category = useRef();
   const description = useRef();
-  const credit_card = useRef();
+  const payment = useRef();
   const quota = useRef();
   const price = useRef();
 
@@ -54,7 +54,7 @@ const NewExpenseModal = forwardRef(function Modal(
         name: expenseName.current.value,
         category: category.current.value,
         description: description.current.value,
-        credit_card: credit_card.current.value,
+        payment: payment.current.value,
         quota:
           +quota.current.value === 0 || +quota.current.value === 1
             ? 1
@@ -127,12 +127,12 @@ const NewExpenseModal = forwardRef(function Modal(
               </div>
               <div className="col-span-2 sm:col-span-1">
                 <label
-                  htmlFor="Credit Card"
+                  htmlFor="Payment"
                   className="block mb-2 text-sm font-medium text-gray-900"
                 >
                   Year
                 </label>
-                <select ref={year} id="credit_card" className={inputStyle}>
+                <select ref={year} id="Payment" className={inputStyle}>
                   <option defaultValue="">Select year</option>
                   <option value="2024">2024</option>
                   <option value="2025">2025</option>
@@ -142,12 +142,12 @@ const NewExpenseModal = forwardRef(function Modal(
               </div>
               <div className="col-span-2 sm:col-span-1">
                 <label
-                  htmlFor="Credit Card"
+                  htmlFor="Payment"
                   className="block mb-2 text-sm font-medium text-gray-900"
                 >
                   Month
                 </label>
-                <select ref={month} id="credit_card" className={inputStyle}>
+                <select ref={month} id="Payment" className={inputStyle}>
                   <option defaultValue="">Select month</option>
                   <option value="Enero">Enero</option>
                   <option value="Febrero">Febrero</option>
@@ -165,19 +165,20 @@ const NewExpenseModal = forwardRef(function Modal(
               </div>
               <div className="col-span-2 sm:col-span-1">
                 <label
-                  htmlFor="Credit Card"
+                  htmlFor="Payment"
                   className="block mb-2 text-sm font-medium text-gray-900"
                 >
-                  Credit Card
+                  Payment
                 </label>
                 <select
-                  ref={credit_card}
-                  id="credit_card"
+                  ref={payment}
+                  id="Payment"
                   className={inputStyle}
                 >
-                  <option defaultValue="">Select credit card</option>
-                  <option value="VISA BLACK">VISA BLACK</option>
-                  <option value="MASTERCARD BLACK">MASTERCARD BLACK</option>
+                  <option defaultValue="">Select Payment</option>
+                  <option value="Visa">Visa</option>
+                  <option value="Mastercard">Mastercard</option>
+                  <option value="Cash">Cash</option>
                 </select>
               </div>
               <div className="col-span-2 sm:col-span-1">
@@ -211,12 +212,18 @@ const NewExpenseModal = forwardRef(function Modal(
                   <option value="Facturas">Facturas</option>
                   <option value="Ropa">Ropa</option>
                   <option value="Restaurante">Restaurante</option>
+                  <option value="Roticeria">Roticeria</option>
                   <option value="Bar">Bar</option>
                   <option value="Tecnologia">Tecnologia</option>
                   <option value="Bebé">Bebé</option>
                   <option value="Entretenimiento">Entretenimiento</option>
                   <option value="Construccion">Construccion</option>
+                  <option value="Taller">Taller</option>
+                  <option value="Regalo">Regalo</option>
+                  <option value="Herramientas">Herramientas</option>
                   <option value="Auto">Auto</option>
+                  <option value="Prestamo">Prestamo</option>
+                  <option value="Desconocido">Desconocido</option>
                 </select>
               </div>
               <div className="col-span-2 sm:col-span-1">
@@ -238,7 +245,7 @@ const NewExpenseModal = forwardRef(function Modal(
               </div>
               <div className="col-span-2 sm:col-span-1">
                 <label
-                  htmlFor="Credit Card"
+                  htmlFor="Payment"
                   className="block mb-2 text-sm font-medium text-gray-900"
                 >
                   Owner

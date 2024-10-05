@@ -15,7 +15,5 @@ export const createExpenses = async (expenses) => {
     body: JSON.stringify(expenses),
   });
   const data = await response.json();
-  console.log("dentro del metodo getExpenses");
-  console.log(data);
   return data;
 };

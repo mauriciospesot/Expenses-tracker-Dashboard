@@ -4,7 +4,7 @@ const buttonClassName =
 
 export default function SideBar({ onOpen }) {
   return (
-    <aside className="w-72 bg-white border-r border-gray-200 p-5 text-secondaryGray-300">
+    <aside className="bg-white border-r border-gray-200 p-5 text-secondaryGray-300">
       <div className="mt-5 border-b-[1px] pb-8">
         <div className="text-4xl text-secondaryGray-900 font-[1000] uppercase">
           Expenses
@@ -48,7 +48,7 @@ export default function SideBar({ onOpen }) {
         ></SideBarButton>
         <SideBarButton
           className={buttonClassName}
-          label="Credit cards"
+          label="Payments"
           onOpen={onOpen}
           svg={
             <svg
